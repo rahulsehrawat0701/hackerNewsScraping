@@ -1,0 +1,43 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+
+urls = ['https://news.ycombinator.com/newest'] 
+for i in range(1, 5):
+    urls.append(f'https://news.ycombinator.com/newest?p={i}')
+    
+headlines = []
+websites = []
+users = []  
+times = []
+
+for url in urls:
+    res = requests.get(url)
+    soup = BeautifulSoup(res.text, 'html.parser')
+    
+    for rank, item in enumerate(soup.select('.titleline'), start=1):
+        headline = item.a.text
+        headlines.append(headline)
+
+    titleline_spans = soup.find_all('span', class_='titleline')    
+    for titleline_span in titleline_spans:
+      sitebit_comhead_span = titleline_span.find('span', class_='sitebit comhead')
+        
+      if sitebit_comhead_span:
+       a_tag = sitebit_comhead_span.find('a')
+       text_value = a_tag.text if a_tag else None
+       websites.append(text_value)
+      else:
+       websites.append(None)
+    
+    for subtext in soup.select('.subtext'):
+        users.append(subtext.select_one('.hnuser').text if subtext.select_one('.hnuser') else '')
+        times.append(subtext.select_one('.age').text if subtext.select_one('.age') else '')
+        
+with open('hn_headlines.csv', 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['S.No.', 'Headline', 'Website', 'Username', 'Time'])
+    for i in range(len(headlines)):
+        writer.writerow([i+1, headlines[i], websites[i], users[i], times[i]])  
+
+print('Scraping finished, CSV file saved')
